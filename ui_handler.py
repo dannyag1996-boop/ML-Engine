@@ -71,7 +71,7 @@ class UIHandler:
         embed = discord.Embed(title=f"{EMOJI_CITY} Cities Needed to Level Up", color=BRIGHT_BLOOD_RED)
         embed.add_field(name="Result", value=(
             f"From level **{result.get('current_level', 1)}** you need **{result.get('cities_needed', 0)}** "
-            f"cities at level **{result.get('city_level', 'the city level you inputted')}** to level up\n"
+            f"cities at level **{result.get('city_level')}** to level up\n"
             f"XP per city: **{format_val(result.get('xp_per_city', 0))}**"
         ), inline=False)
         embed.set_footer(text="farm powered by MLE")
