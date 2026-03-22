@@ -4,7 +4,7 @@ from ui_handler import UIHandler
 from cities import Cities
 from dictionary import clean_input, normalize_stat, format_val
 from troops_calc import TroopsCalc
-from xp_handler import XPHandler  # ← Added (fixes /farm /xp /cityxp)
+from xp_handler import XPHandler
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -38,7 +38,7 @@ class CommandHandler(commands.Cog):
                 result = engine.optimize_farm(args)
                 embed = ui.create_farm_embed(result)
                 await ctx.send(embed=embed)
-            elif cmd == "plan":  # ← was "level"
+            elif cmd == "plan":
                 result = engine.optimize_leveling_plan(args)
                 embed = ui.create_level_embed(result)
                 await ctx.send(embed=embed)
@@ -50,7 +50,7 @@ class CommandHandler(commands.Cog):
                 result = engine.calculate_xp(args)
                 embed = ui.create_xp_embed(result)
                 await ctx.send(embed=embed)
-            elif cmd == "cost":  # ← was "bulk"
+            elif cmd == "cost":
                 result = engine.bulk_cost_calc(args)
                 embed = ui.create_bulk_embed(result)
                 await ctx.send(embed=embed)
@@ -58,33 +58,9 @@ class CommandHandler(commands.Cog):
                 result = engine.drain_calc(args)
                 embed = ui.create_drain_embed(result)
                 await ctx.send(embed=embed)
-            # Profile commands (skipped phase) - now have placeholders
-            elif cmd == "setprofile":
-                await self._set_profile(ctx, args)
-            elif cmd == "adjustother":
-                await self._adjust_other(ctx, args)
-            elif cmd == "adjustperm":
-                await self._adjust_perm(ctx, args)
-            elif cmd == "profile2":
-                await self._profile2(ctx, args)
-            elif cmd == "useprofile":
-                await self._use_profile(ctx, args)
-            elif cmd == "noprofile":
-                await self._noprofile(ctx)
-            elif cmd == "clear":
-                await self._clear(ctx, args)
-            elif cmd == "profile":
-                await self._profile(ctx, args)
-            elif cmd == "permissions":
-                await self._permissions(ctx, args)
-            elif cmd == "allprofiles":
-                await self._allprofiles(ctx)
-            elif cmd == "attackers":
-                await self._attackers(ctx)
-            elif cmd == "builders":
-                await self._builders(ctx)
-            elif cmd == "assign":
-                await self._assign(ctx, args)
+            # Profile commands (skipped phase)
+            elif cmd in ["setprofile", "adjustother", "adjustperm", "profile2", "useprofile", "noprofile", "clear", "profile", "permissions", "allprofiles", "attackers", "builders", "assign"]:
+                await ctx.send("Profiles phase skipped for now.")
             elif cmd == "help" or cmd == "commands":
                 await self.show_help(ctx)
             else:
@@ -127,26 +103,10 @@ class CommandHandler(commands.Cog):
         target_pct = clean_input(args[4] if len(args) > 4 else 90, True)
         return [dt_troops, guardian, at_troops, salv, target_pct]
 
-    # === Placeholder methods for skipped profile phase ===
-    async def _set_profile(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
-    async def _adjust_other(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
-    async def _adjust_perm(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
-    async def _profile2(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
-    async def _use_profile(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
-    async def _noprofile(self, ctx): await ctx.send("Profiles phase skipped for now.")
-    async def _clear(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
-    async def _profile(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
-    async def _permissions(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
-    async def _allprofiles(self, ctx): await ctx.send("Profiles phase skipped for now.")
-    async def _attackers(self, ctx): await ctx.send("Profiles phase skipped for now.")
-    async def _builders(self, ctx): await ctx.send("Profiles phase skipped for now.")
-    async def _assign(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
-    # =======================================================
-
     async def show_help(self, ctx):
         embed = discord.Embed(title="All Commands", color=0x3498db)
-        embed.add_field(name="Battle", value="$sim $ap $calc $farm $plan $sui $xp $cost $drain", inline=False)  # ← updated
-        embed.add_field(name="Profiles", value="$setprofile $adjustother $adjustperm $profile2 $useprofile $noprofile $clear $profile $permissions $allprofiles $attackers $builders $assign", inline=False)
+        embed.add_field(name="Battle", value="$sim $ap $calc $farm $plan $sui $xp $cost $drain", inline=False)
+        embed.add_field(name="Profiles", value="Skipped for now", inline=False)
         embed.add_field(name="Help", value="$help $commands", inline=False)
         await ctx.send(embed=embed)
 
@@ -180,7 +140,7 @@ class CommandHandler(commands.Cog):
         embed = ui.create_farm_embed(result)
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="plan", description="Leveling plan (was /level)")  # ← renamed
+    @app_commands.command(name="plan", description="Leveling plan (was /level)")
     @app_commands.describe(current_level="Current player level", target_level="Target level")
     async def slash_level(self, interaction: discord.Interaction, current_level: int, target_level: int):
         await interaction.response.defer()
@@ -190,8 +150,8 @@ class CommandHandler(commands.Cog):
         await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="sui", description="SUI calculator")
-    @app_commands.describe(defender_troops="Defender troops", guardian="Guardian %", attacker_troops="Attacker troops", salvager="Salvager %", target_loss="Target loss %")
-    async def slash_sui(self, interaction: discord.Interaction, defender_troops: str, guardian: float = 0.0, attacker_troops: str, salvager: float = 0.0, target_loss: float = 90.0):
+    @app_commands.describe(defender_troops="Defender troops", attacker_troops="Attacker troops", guardian="Guardian %", salvager="Salvager %", target_loss="Target loss %")
+    async def slash_sui(self, interaction: discord.Interaction, defender_troops: str, attacker_troops: str, guardian: float = 0.0, salvager: float = 0.0, target_loss: float = 90.0):
         await interaction.response.defer()
         await asyncio.sleep(0.5)
         result = engine.sui_calc(self._parse_sui([defender_troops, str(guardian), attacker_troops, str(salvager), str(target_loss)]))
@@ -207,7 +167,7 @@ class CommandHandler(commands.Cog):
         embed = ui.create_xp_embed(result)
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="cost", description="Bulk upgrade cost (was /bulk)")  # ← renamed
+    @app_commands.command(name="cost", description="Bulk upgrade cost (was /bulk)")
     @app_commands.describe(amount="Amount of cities", start_level="Starting city level", target_level="Target city level")
     async def slash_bulk(self, interaction: discord.Interaction, amount: int, start_level: int, target_level: int):
         await interaction.response.defer()
