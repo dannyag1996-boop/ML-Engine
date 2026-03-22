@@ -1,3 +1,13 @@
+import os
+import tarfile
+
+print("🔄 Extracting archived folders from GitHub...")
+for filename in os.listdir("."):
+    if filename.endswith(".tar.gz"):
+        print(f"Extracting {filename}...")
+        with tarfile.open(filename, "r:gz") as tar:
+            tar.extractall(path=".")
+        print(f"✅ Successfully extracted {filename}")
 import discord
 from discord.ext import commands
 import traceback
