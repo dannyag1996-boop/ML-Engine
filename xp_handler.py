@@ -57,4 +57,9 @@ class XPHandler:
         xp_per_city = XPHandler.calculate_xp_this_hit(50000, cw, modifier)
         needed = XPHandler.get_xp_needed_for_next_level(current_level)
         cities_needed = math.ceil(needed / xp_per_city)
-        return {"cities_needed": cities_needed, "current_level": current_level, "xp_per_city": round(xp_per_city, 1)}
+        return {
+            "cities_needed": cities_needed,
+            "current_level": current_level,
+            "city_level": city_level,          # ← THIS WAS THE MISSING LINE
+            "xp_per_city": round(xp_per_city, 1)
+        }
