@@ -1,16 +1,45 @@
 import os
 import tarfile
-
-print("🔄 Extracting archived folders from GitHub...")
-for filename in os.listdir("."):
-    if filename.endswith(".tar.gz"):
-        print(f"Extracting {filename}...")
-        with tarfile.open(filename, "r:gz") as tar:
-            tar.extractall(path=".")
-        print(f"✅ Successfully extracted {filename}")
 import discord
 from discord.ext import commands
 import traceback
+
+print("🔄 Setting up persistent storage...")
+
+data_dir = "/data"
+os.makedirs(data_dir, exist_ok=True)
+
+# === ONLY extract the first time the folders don't exist yet ===
+key_folders = ["local", "cache"]
+folders_already_exist = all(os.path.exists(os.path.join(data_dir, f)) for f in key_folders)
+
+if not folders_already_exist:
+    print("📦 First-time migration: Extracting .tar.gz archives into Volume...")
+    for filename in os.listdir("."):
+        if filename.endswith(".tar.gz"):
+            print(f"Extracting {filename}...")
+            with tarfile.open(filename, "r:gz") as tar:
+                tar.extractall(path=data_dir, filter="data")
+            print(f"✅ Successfully extracted {filename}")
+else:
+    print("✅ Data already exists in persistent volume. Skipping extraction.")
+
+# === ALWAYS create symlinks on every boot (this part is required forever) ===
+print("🔗 Creating symlinks to persistent storage...")
+for folder in key_folders:
+    src = os.path.join(data_dir, folder)
+    dst = f"./{folder}"
+    if os.path.exists(src):
+        # Remove old symlink if it exists
+        if os.path.exists(dst) and os.path.islink(dst):
+            os.unlink(dst)
+        try:
+            os.symlink(src, dst, target_is_directory=True)
+            print(f"✅ Symlink created for {folder}/")
+        except Exception as e:
+            print(f"Symlink for {folder} already good or skipped.")
+
+print("✅ Persistent storage setup complete!")
 
 bot = commands.Bot(
     command_prefix=None,
@@ -43,4 +72,4 @@ async def on_command_error(ctx, error):
         traceback.print_exc()
         await ctx.send("❌ Unexpected error occurred.")
 
-bot.run("MTQ4Mjg5NjM0NDY5NDY1NzEyNA.GtTTPG.WKIVt_1jUJECWkoHlheFComhR5AWeGEIAhILt4")
+bot.run(os.getenv("DISCORD_TOKEN"))
