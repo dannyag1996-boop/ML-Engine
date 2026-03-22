@@ -51,14 +51,14 @@ class CommandHandler(commands.Cog):
                 embed = ui.create_xp_embed(result)
                 await ctx.send(embed=embed)
             elif cmd == "cost":
-                result = engine.bulk_cost_calc(args)
+                # Prefix uses same order as slash (amount start target) → swap for engine
+                result = engine.bulk_cost_calc([args[1] if len(args)>1 else "1", args[2] if len(args)>2 else "10", args[0] if len(args)>0 else "1"])
                 embed = ui.create_bulk_embed(result)
                 await ctx.send(embed=embed)
             elif cmd == "drain":
                 result = engine.drain_calc(args)
                 embed = ui.create_drain_embed(result)
                 await ctx.send(embed=embed)
-            # Profile commands (skipped phase)
             elif cmd in ["setprofile", "adjustother", "adjustperm", "profile2", "useprofile", "noprofile", "clear", "profile", "permissions", "allprofiles", "attackers", "builders", "assign"]:
                 await ctx.send("Profiles phase skipped for now.")
             elif cmd == "help" or cmd == "commands":
@@ -168,11 +168,16 @@ class CommandHandler(commands.Cog):
         await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="cost", description="Bulk upgrade cost (was /bulk)")
-    @app_commands.describe(amount="Amount of cities", start_level="Starting city level", target_level="Target city level")
+    @app_commands.describe(
+        amount="Amount of cities",
+        start_level="Starting city level",
+        target_level="Target city level"
+    )
     async def slash_bulk(self, interaction: discord.Interaction, amount: int, start_level: int, target_level: int):
         await interaction.response.defer()
         await asyncio.sleep(0.5)
-        result = engine.bulk_cost_calc([str(amount), str(start_level), str(target_level)])
+        # FIXED: Pass list in engine-expected order [start, target, amount]
+        result = engine.bulk_cost_calc([str(start_level), str(target_level), str(amount)])
         embed = ui.create_bulk_embed(result)
         await interaction.followup.send(embed=embed)
 
