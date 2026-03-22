@@ -1,52 +1,58 @@
-import discord
-from dictionary import (
-    EMOJI_CITY, EMOJI_ATTACK, EMOJI_DEFENSE, EMOJI_TROOPS,
-    EMOJI_STRIKER, EMOJI_GUARDIAN, EMOJI_SALVE, EMOJI_SCAV,
-    EMOJI_FEARLESS, EMOJI_BATTLE, EMOJI_CAUTIOUS, DIVIDER,
-    format_val
-)
+import math
+from dictionary import clean_input
+from cities import Cities
 
-BRIGHT_BLOOD_RED = 0xC8102E
-
-class UIHandler:
+class XPHandler:
     @staticmethod
-    def create_battle_embed(result):
-        cl = result.get('city_level', 1)
-        embed = discord.Embed(
-            title=f"{EMOJI_CITY} City {cl} | Total Defense: {format_val(result.get('dp', 0))}",
-            description=f"Wall: {format_val(result.get('cw', 0))} | Troops & Guard: {format_val(result.get('dp', 0) - result.get('cw', 0))}",
-            color=BRIGHT_BLOOD_RED
-        )
-        embed.add_field(name=f"{EMOJI_BATTLE} Battle Report", value=(
-            f"{EMOJI_ATTACK} **{format_val(result.get('ap', 0))} AP** | {EMOJI_STRIKER} {result.get('striker', 0):.0f}%\n"
-            f"{EMOJI_TROOPS} **{format_val(result.get('at_troops', 0))}** → **{format_val(result.get('at_troops', 0) - result.get('attacker_killed', 0))}** ☠️ **{format_val(result.get('attacker_killed', 0))}** (-{result.get('at_loss_pct', 0):.1f}%)\n"
-            f"{EMOJI_FEARLESS} 90%: **{format_val(result.get('rev_a90', 0))}** | 75%: **{format_val(result.get('rev_a75', 0))}**\n"
-            f"{EMOJI_SCAV} 162%: **{format_val(result.get('scav_162', 0))}** | 144%: **{format_val(result.get('scav_144', 0))}**\n\u200b"
-        ), inline=False)
-        embed.add_field(name=f"{EMOJI_DEFENSE} {format_val(result.get('dp', 0))} DP | {EMOJI_GUARDIAN} {result.get('guardian', 0):.0f}%", value=(
-            f"{EMOJI_TROOPS} **{format_val(result.get('dt_troops', 0))}** → **{format_val(result.get('dt_troops', 0) - result.get('defender_killed', 0))}** ☠️ **{format_val(result.get('defender_killed', 0))}** (-{result.get('dt_loss_pct', 0):.1f}%)\n"
-            f"{EMOJI_FEARLESS} 90%: **{format_val(result.get('rev_d90', 0))}** | 75%: **{format_val(result.get('rev_d75', 0))}**\n"
-            f"{EMOJI_SALVE} {result.get('salv', 0):.0f}%: **{format_val(result.get('salvager_gold', 0))}**\n{DIVIDER}"
-        ), inline=False)
-        embed.add_field(name="Cost From Level | Cautious | Salve Profit", value=(
-            f"Lvl {max(1, cl-5)} → **{format_val(result.get('cost_5', 0))}** | {EMOJI_CAUTIOUS} **{format_val(result.get('cautious_5', 0))}** | {EMOJI_SALVE}**{ '+' if result.get('salve_profit_5', 0) >= 0 else ''}{format_val(result.get('salve_profit_5', 0))}**\n"
-            f"Lvl {max(1, cl-10)} → **{format_val(result.get('cost_10', 0))}** | {EMOJI_CAUTIOUS} **{format_val(result.get('cautious_10', 0))}** | {EMOJI_SALVE}**{ '+' if result.get('salve_profit_10', 0) >= 0 else ''}{format_val(result.get('salve_profit_10', 0))}**\n"
-            f"Lvl {max(1, cl-15)} → **{format_val(result.get('cost_15', 0))}** | {EMOJI_CAUTIOUS} **{format_val(result.get('cautious_15', 0))}** | {EMOJI_SALVE}**{ '+' if result.get('salve_profit_15', 0) >= 0 else ''}{format_val(result.get('salve_profit_15', 0))}**\n"
-            f"Lvl 1 → **{format_val(result.get('cost_full', 0))}** | {EMOJI_CAUTIOUS} **{format_val(result.get('cautious_full', 0))}** | {EMOJI_SALVE}**{ '+' if result.get('salve_profit_full', 0) >= 0 else ''}{format_val(result.get('salve_profit_full', 0))}**"
-        ), inline=False)
-        embed.set_footer(text=f"Troops+Guard = {result.get('defender_troop_pct', 0):.1f}% of Total Defense")
-        return embed
+    def parse_modifier(modifier_input: str | float) -> float:
+        if isinstance(modifier_input, (int, float)):
+            return float(modifier_input) / 100.0
+        s = str(modifier_input).strip().replace('%', '')
+        try:
+            val = float(s)
+            return val / 100.0 if '%' in str(modifier_input) else val
+        except:
+            return 1.0
 
     @staticmethod
-    def create_calc_embed(result):
-        battle_data = result.get('full_result', result)
-        embed = UIHandler.create_battle_embed(battle_data)
-        embed.title = f"{EMOJI_CITY} City {battle_data.get('city_level', 1)} | Total Defense: {format_val(battle_data.get('dp', 0))}"
-        embed.color = BRIGHT_BLOOD_RED
-        opt_dt = format_val(result.get('defender_troops', battle_data.get('dt_troops', 0)))
-        embed.description = f"**Optimal Defender Troops:** {opt_dt}\n\n" + (embed.description or "")
-        rec = result.get('recommended')
-        if rec:
-            saves = result.get('main_defender_troops', 0) - rec.get('defender_troops', 0)
-            recommended_text = (
-                f"Stats: **{rec.get('salvager', 0):.1f}%**
+    def calculate_xp_this_hit(
+        defender_killed: float,
+        city_wall: float,
+        modifier_input: str | float = "100%"
+    ) -> float:
+        base_xp = (defender_killed * 3.0) + city_wall
+        multiplier = XPHandler.parse_modifier(modifier_input)
+        return base_xp * multiplier
+
+    @staticmethod
+    def get_xp_needed_for_next_level(current_level: int) -> float:
+        if current_level < 1:
+            return 50.0
+        return round(50 * (1.3 ** (current_level - 1)), 2)
+
+    @staticmethod
+    def calculate_cumulative_xp(cities: int = 5, city_level: int = 115, modifier: float = 100.0):
+        cw = Cities.get_cw_val(city_level)
+        total_xp = 0.0
+        for _ in range(cities):
+            total_xp += XPHandler.calculate_xp_this_hit(50000, cw, modifier)
+        return {"total_xp": round(total_xp, 1), "cities": cities, "city_level": city_level, "modifier": modifier}
+
+    @staticmethod
+    def calculate_single_city_xp(city_level: int = 115, modifier: float = 100.0):
+        cw = Cities.get_cw_val(city_level)
+        xp = XPHandler.calculate_xp_this_hit(50000, cw, modifier)
+        return {"xp": round(xp, 1), "city_level": city_level, "modifier": modifier}
+
+    @staticmethod
+    def calculate_cities_needed_to_level_up(current_level: int, city_level: int = 115, modifier: float = 100.0):
+        cw = Cities.get_cw_val(city_level)
+        xp_per_city = XPHandler.calculate_xp_this_hit(50000, cw, modifier)
+        needed = XPHandler.get_xp_needed_for_next_level(current_level)
+        cities_needed = math.ceil(needed / xp_per_city)
+        return {
+            "cities_needed": cities_needed,
+            "current_level": current_level,
+            "city_level": city_level,          # ← THIS WAS THE MISSING LINE
+            "xp_per_city": round(xp_per_city, 1)
+        }
