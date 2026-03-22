@@ -6,7 +6,7 @@ class XPHandler:
     @staticmethod
     def parse_modifier(modifier_input: str | float) -> float:
         if isinstance(modifier_input, (int, float)):
-            return float(modifier_input) / 100.0   # Option A: always treat float as percentage
+            return float(modifier_input) / 100.0
         s = str(modifier_input).strip().replace('%', '')
         try:
             val = float(s)
@@ -29,13 +29,6 @@ class XPHandler:
         if current_level < 1:
             return 50.0
         return round(50 * (1.3 ** (current_level - 1)), 2)
-
-    @staticmethod
-    def check_level_up(current_xp: float, current_level: int) -> tuple[int, float]:
-        xp_needed = XPHandler.get_xp_needed_for_next_level(current_level)
-        if current_xp >= xp_needed:
-            return current_level + 1, 0.0
-        return current_level, current_xp
 
     @staticmethod
     def calculate_cumulative_xp(cities: int = 5, city_level: int = 115, modifier: float = 100.0):
