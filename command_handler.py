@@ -100,7 +100,7 @@ class CommandHandler(commands.Cog):
     def _parse_calc(self, args):
         return args
 
-    # ===================== YOUR EXACT /calc (no gold, uses optimizer) =====================
+    # ===================== EXACT ORIGINAL /calc (no gold, uses fast optimizer) =====================
     @app_commands.command(name="calc", description="Run full battle calc with optimizer")
     @app_commands.describe(
         attacking_troops="Attacking troops",
@@ -114,7 +114,6 @@ class CommandHandler(commands.Cog):
         await interaction.response.defer()
         await asyncio.sleep(0.8)
         try:
-            # Calls the fast optimizer exactly like before the rename mess
             result = engine.optimize_calc("0g", attacking_troops, 115, "0", mode, acceptable_loss)
             embed = ui.create_calc_embed(result)
             await interaction.followup.send(embed=embed)
