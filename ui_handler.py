@@ -6,6 +6,8 @@ from dictionary import (
     format_val
 )
 
+BRIGHT_BLOOD_RED = 0xC8102E  # Unified color for all embeds
+
 class UIHandler:
     @staticmethod
     def create_battle_embed(result):
@@ -13,7 +15,7 @@ class UIHandler:
         embed = discord.Embed(
             title=f"{EMOJI_CITY} City {cl} | Total Defense: {format_val(result.get('dp', 0))}",
             description=f"Wall: {format_val(result.get('cw', 0))} | Troops & Guard: {format_val(result.get('dp', 0) - result.get('cw', 0))}",
-            color=0x3498db
+            color=BRIGHT_BLOOD_RED
         )
 
         embed.add_field(name=f"{EMOJI_BATTLE} Battle Report", value=(
@@ -46,7 +48,7 @@ class UIHandler:
         battle_data = result.get('full_result', result)
         embed = UIHandler.create_battle_embed(battle_data)
         embed.title = f"{EMOJI_CITY} City {battle_data.get('city_level', 1)} | Total Defense: {format_val(battle_data.get('dp', 0))}"
-        embed.color = 0xe67e22
+        embed.color = BRIGHT_BLOOD_RED
         
         opt_dt = format_val(result.get('defender_troops', battle_data.get('dt_troops', 0)))
         embed.description = f"**Optimal Defender Troops:** {opt_dt}\n\n" + (embed.description or "")
@@ -68,30 +70,33 @@ class UIHandler:
 
     @staticmethod
     def create_ap_embed(result):
-        embed = discord.Embed(title="Attack Power", color=0xe74c3c)
+        embed = discord.Embed(title=f"{EMOJI_ATTACK} Attack Power", color=BRIGHT_BLOOD_RED)
         embed.add_field(name="Input", value=f"{EMOJI_TROOPS} Troops: **{result.get('formatted_troops', '0')}**\n{EMOJI_STRIKER} Striker: **{result.get('striker', 0):.0f}%**", inline=False)
         embed.add_field(name="Results", value=f"{EMOJI_ATTACK} AP: **{format_val(result.get('ap', 0))}**\n{EMOJI_CITY} Max Empty City: **{result.get('max_city', 1)}**", inline=False)
-        
         embed.set_footer(text="ap powered by MLE")
         return embed
 
     @staticmethod
     def create_farm_embed(result):
-        embed = discord.Embed(title="Cities Needed to Level Up", color=0xe67e22)
-        embed.add_field(name="Result", value=f"From level **{result.get('current_level', 1)}** you need **{result.get('cities_needed', 0)}** cities at level {result.get('city_level', 115)} to level up\nXP per city: **{format_val(result.get('xp_per_city', 0))}**", inline=False)
+        embed = discord.Embed(title=f"{EMOJI_CITY} Cities Needed to Level Up", color=BRIGHT_BLOOD_RED)
+        embed.add_field(name="Result", value=(
+            f"From level **{result.get('current_level', 1)}** you need **{result.get('cities_needed', 0)}** "
+            f"cities at level **{result.get('city_level')}** to level up\n"
+            f"XP per city: **{format_val(result.get('xp_per_city', 0))}**"
+        ), inline=False)
         embed.set_footer(text="farm powered by MLE")
         return embed
 
     @staticmethod
     def create_level_embed(result):
-        embed = discord.Embed(title="Leveling Plan", color=0xe67e22)
+        embed = discord.Embed(title=f"{EMOJI_CITY} Leveling Plan", color=BRIGHT_BLOOD_RED)
         embed.add_field(name="Summary", value=f"Start: **{format_val(result.get('starting_troops', 0))}** | Hits: **{result.get('cities_hitted', 0)}** | Final Level: **{result.get('final_character_level', 1)}**", inline=False)
         embed.set_footer(text="level powered by MLE")
         return embed
 
     @staticmethod
     def create_sui_embed(result):
-        embed = discord.Embed(title="Suicide Optimal City", color=0xf1c40f)
+        embed = discord.Embed(title=f"{EMOJI_SALVE} Suicide Optimal City", color=BRIGHT_BLOOD_RED)
         value = (
             f"{EMOJI_CITY} City Level: **{result.get('city_level', 1)}**\n"
             f"{EMOJI_GUARDIAN} Guardian: **{result.get('guardian', 0):.0f}%**\n"
@@ -107,7 +112,7 @@ class UIHandler:
 
     @staticmethod
     def create_xp_embed(result):
-        embed = discord.Embed(title="XP Calculator", color=0xe67e22)
+        embed = discord.Embed(title=f"{EMOJI_CITY} XP Calculator", color=BRIGHT_BLOOD_RED)
         if 'total_xp' in result:
             embed.add_field(name="Cumulative XP", value=f"**{format_val(result['total_xp'])}** XP from {result['cities']} cities at level {result['city_level']} (modifier **{result.get('modifier', 100):.0f}%**)", inline=False)
         elif 'xp' in result:
@@ -117,7 +122,7 @@ class UIHandler:
 
     @staticmethod
     def create_bulk_embed(result):
-        embed = discord.Embed(title="Bulk Upgrade Report", color=0x9b59b6)
+        embed = discord.Embed(title=f"{EMOJI_CITY} Bulk Upgrade Report", color=BRIGHT_BLOOD_RED)
         embed.add_field(name="Details", value=f"Quantity: **{result.get('cities', 1)}**\nFrom **{result.get('start_level', 1)}** → **{result.get('target_level', 10)}**", inline=False)
         embed.add_field(name="Gold Cost", value=f"Per City: **{format_val(result.get('total_cost', 0) / result.get('cities', 1))}**\nTotal: **{format_val(result.get('total_cost', 0))}**\n{DIVIDER}\n{EMOJI_CAUTIOUS} Half Return: **{format_val(result.get('total_cost', 0) * 0.5)}**", inline=False)
         embed.set_footer(text="bulk powered by MLE")
@@ -125,28 +130,31 @@ class UIHandler:
 
     @staticmethod
     def create_drain_embed(result):
-        embed = discord.Embed(title="Drain Cycle Simulation", color=0xe67e22)
-        embed.add_field(name="Result", value=f"**{result.get('cycles_completed', 0)}** full cycles completed\nFinal gold left: **{format_val(result.get('final_gold', 0))}**\nCost per cycle: **{format_val(result.get('cost_per_cycle', 0))}**\nCautious return per cycle: **{format_val(result.get('cautious_return_per_cycle', 0))}**", inline=False)
+        embed = discord.Embed(title=f"{EMOJI_CAUTIOUS} Cautious-Only Build", color=BRIGHT_BLOOD_RED)
+        embed.add_field(name="Result", value=(
+            f"**{result.get('cycles_completed', 0)}** cities upgraded at **{format_val(result.get('cost_per_cycle', 0))}**, "
+            f"with **{format_val(result.get('cautious_return_per_cycle', 0))}** returned each hit."
+        ), inline=False)
         embed.set_footer(text="drain powered by MLE")
         return embed
 
     @staticmethod
     def create_profile_embed(result):
-        embed = discord.Embed(title="Profile Information", color=0xe67e22)
+        embed = discord.Embed(title=f"{EMOJI_CITY} Profile Information", color=BRIGHT_BLOOD_RED)
         embed.add_field(name="Data", value=str(result), inline=False)
         embed.set_footer(text="profile powered by MLE")
         return embed
 
     @staticmethod
     def create_permissions_embed(result):
-        embed = discord.Embed(title="Permissions", color=0xe67e22)
+        embed = discord.Embed(title=f"{EMOJI_GUARDIAN} Permissions", color=BRIGHT_BLOOD_RED)
         embed.add_field(name="Users", value=str(result), inline=False)
         embed.set_footer(text="permissions powered by MLE")
         return embed
 
     @staticmethod
     def create_allprofiles_embed(result):
-        embed = discord.Embed(title="All Profiles", color=0xe67e22)
+        embed = discord.Embed(title=f"{EMOJI_CITY} All Profiles", color=BRIGHT_BLOOD_RED)
         embed.add_field(name="List", value=", ".join(result) if result else "None", inline=False)
         embed.set_footer(text="allprofiles powered by MLE")
         return embed
