@@ -2,7 +2,7 @@ from profiles_handler import ProfilesHandler
 from core_engine import CoreBattleEngine
 from ui_handler import UIHandler
 from cities import Cities
-from dictionary import clean_input, normalize_stat, format_val
+from dictionary import clean_input, format_val
 from troops_calc import TroopsCalc
 from xp_handler import XPHandler
 import discord
@@ -38,7 +38,7 @@ class CommandHandler(commands.Cog):
                 result = engine.optimize_farm(args)
                 embed = ui.create_farm_embed(result)
                 await ctx.send(embed=embed)
-            elif cmd == "plan":
+            elif cmd == "level":
                 result = engine.optimize_leveling_plan(args)
                 embed = ui.create_level_embed(result)
                 await ctx.send(embed=embed)
@@ -50,26 +50,22 @@ class CommandHandler(commands.Cog):
                 result = engine.calculate_xp(args)
                 embed = ui.create_xp_embed(result)
                 await ctx.send(embed=embed)
-            elif cmd == "cost":
-                # Prefix uses same order as slash (amount start target) → swap for engine
-                result = engine.bulk_cost_calc([args[1] if len(args)>1 else "1", args[2] if len(args)>2 else "10", args[0] if len(args)>0 else "1"])
+            elif cmd == "bulk":
+                # Pre-rename order: amount start target → engine expects start target amount
+                if len(args) >= 3:
+                    result = engine.bulk_cost_calc([args[1], args[2], args[0]])
+                else:
+                    result = engine.bulk_cost_calc(args)
                 embed = ui.create_bulk_embed(result)
                 await ctx.send(embed=embed)
             elif cmd == "drain":
                 result = engine.drain_calc(args)
                 embed = ui.create_drain_embed(result)
                 await ctx.send(embed=embed)
-            elif cmd in ["setprofile", "adjustother", "adjustperm", "profile2", "useprofile", "noprofile", "clear", "profile", "permissions", "allprofiles", "attackers", "builders", "assign"]:
-                await ctx.send("Profiles phase skipped for now.")
-            elif cmd == "help" or cmd == "commands":
-                await self.show_help(ctx)
             else:
-                await ctx.send(f"Unknown command `{cmd}`. Use `$help`.")
+                await ctx.send("Command not supported or profiles skipped.")
         except Exception as e:
             await ctx.send(f"Error: {str(e)}")
-
-    def _parse_calc(self, args):
-        return args
 
     def _parse_sim(self, args):
         city_level = int(clean_input(args[0], True)) if len(args) > 0 else 115
@@ -80,8 +76,7 @@ class CommandHandler(commands.Cog):
         guardian = clean_input(args[5], True) if len(args) > 5 else 0.0
         salv = clean_input(args[6], True) if len(args) > 6 else 0.0
         fearless = clean_input(args[7], True) if len(args) > 7 else 75.0
-        result = engine.simulate_battle(at_troops=at_troops, striker=striker, scav=scav, fearless=fearless, dt_troops=dt_troops, guardian=guardian, salv=salv, brave=fearless, city_level=city_level)
-        return result
+        return engine.simulate_battle(at_troops=at_troops, striker=striker, scav=scav, fearless=fearless, dt_troops=dt_troops, guardian=guardian, salv=salv, brave=fearless, city_level=city_level)
 
     def _parse_ap(self, args):
         troops = clean_input(args[0], False) if len(args) > 0 else 0.0
@@ -103,20 +98,18 @@ class CommandHandler(commands.Cog):
         target_pct = clean_input(args[4] if len(args) > 4 else 90, True)
         return [dt_troops, guardian, at_troops, salv, target_pct]
 
-    async def show_help(self, ctx):
-        embed = discord.Embed(title="All Commands", color=0x3498db)
-        embed.add_field(name="Battle", value="$sim $ap $calc $farm $plan $sui $xp $cost $drain", inline=False)
-        embed.add_field(name="Profiles", value="Skipped for now", inline=False)
-        embed.add_field(name="Help", value="$help $commands", inline=False)
-        await ctx.send(embed=embed)
+    def _parse_calc(self, args):
+        return args
 
-    @app_commands.command(name="ap", description="Calculate Attack Power")
-    @app_commands.describe(troops="Troops (e.g. 456g)", striker="Striker bonus %")
-    async def slash_ap(self, interaction: discord.Interaction, troops: str, striker: float = 0.0):
+    # ===================== FULLY RESTORED SLASH COMMANDS (pre-rename state) =====================
+    @app_commands.command(name="sim", description="Simulate a single battle")
+    @app_commands.describe(city_level="City level", attacker_troops="Attacker troops (e.g. 450g)", striker="Striker %", scavenger="Scavenger %", defender_troops="Defender troops", guardian="Guardian %", salvager="Salvager %", fearless="Fearless %")
+    async def slash_sim(self, interaction: discord.Interaction, city_level: int, attacker_troops: str, striker: float = 0.0, scavenger: float = 0.0, defender_troops: str, guardian: float = 0.0, salvager: float = 0.0, fearless: float = 75.0):
         await interaction.response.defer()
         await asyncio.sleep(0.5)
-        result = self._parse_ap([troops, str(striker)])
-        embed = ui.create_ap_embed(result)
+        args = [str(city_level), attacker_troops, str(striker), str(scavenger), defender_troops, str(guardian), str(salvager), str(fearless)]
+        result = self._parse_sim(args)
+        embed = ui.create_battle_embed(result)
         await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="calc", description="Run full battle calc with optimizer")
@@ -140,7 +133,7 @@ class CommandHandler(commands.Cog):
         embed = ui.create_farm_embed(result)
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="plan", description="Leveling plan (was /level)")
+    @app_commands.command(name="level", description="Leveling plan")
     @app_commands.describe(current_level="Current player level", target_level="Target level")
     async def slash_level(self, interaction: discord.Interaction, current_level: int, target_level: int):
         await interaction.response.defer()
@@ -167,16 +160,11 @@ class CommandHandler(commands.Cog):
         embed = ui.create_xp_embed(result)
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="cost", description="Bulk upgrade cost (was /bulk)")
-    @app_commands.describe(
-        amount="Amount of cities",
-        start_level="Starting city level",
-        target_level="Target city level"
-    )
+    @app_commands.command(name="bulk", description="Bulk upgrade cost")
+    @app_commands.describe(amount="Amount of cities", start_level="Starting city level", target_level="Target city level")
     async def slash_bulk(self, interaction: discord.Interaction, amount: int, start_level: int, target_level: int):
         await interaction.response.defer()
         await asyncio.sleep(0.5)
-        # FIXED: Pass list in engine-expected order [start, target, amount]
         result = engine.bulk_cost_calc([str(start_level), str(target_level), str(amount)])
         embed = ui.create_bulk_embed(result)
         await interaction.followup.send(embed=embed)
@@ -188,6 +176,15 @@ class CommandHandler(commands.Cog):
         await asyncio.sleep(0.5)
         result = engine.drain_calc([str(start_level), str(target_level), gold_stock, str(cautious)])
         embed = ui.create_drain_embed(result)
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="ap", description="Calculate Attack Power")
+    @app_commands.describe(troops="Troops (e.g. 456g)", striker="Striker bonus %")
+    async def slash_ap(self, interaction: discord.Interaction, troops: str, striker: float = 0.0):
+        await interaction.response.defer()
+        await asyncio.sleep(0.5)
+        result = self._parse_ap([troops, str(striker)])
+        embed = ui.create_ap_embed(result)
         await interaction.followup.send(embed=embed)
 
 # End of file
