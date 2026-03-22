@@ -24,20 +24,20 @@ class BattleOptimizer:
 
         target_ratio = 0.65 if mode == "max" else 0.50
 
-        # Hybrid binary search + refined local search for 100% exact pre-50k match
-        def find_dt_for_loss(cl, target_loss):
+        # Hybrid binary search + refined local search for 100% exact pre-50k match on MAIN result
+        def find_dt_for_loss(cl, target_loss, guardian=manual_guardian, salv=manual_salvager):
             low = max(5.0, attacker_troops * 0.15)
             high = attacker_troops * 2.8
             best_dt = low
             best_diff = float('inf')
-            for _ in range(40):  # increased precision
+            for _ in range(40):
                 mid = (low + high) / 2
                 result = engine.simulate_battle(
                     at_troops=attacker_troops,
                     striker=attacker_striker,
                     dt_troops=mid,
-                    guardian=manual_guardian,
-                    salv=manual_salvager,
+                    guardian=guardian,
+                    salv=salv,
                     city_level=cl
                 )
                 if not result.get("attacker_wins"):
@@ -63,12 +63,10 @@ class BattleOptimizer:
 
             base_dt = find_dt_for_loss(cl, acceptable_loss_pct)
             
-            # Wider local refinement to guarantee old scoring behavior
             step = max(0.5, (attacker_troops * 2.8 - base_dt) / 120)
             for i in range(-10, 11):
                 dt = base_dt + i * step
-                if dt < 5.0:
-                    continue
+                if dt < 5.0: continue
                     
                 result = engine.simulate_battle(
                     at_troops=attacker_troops,
@@ -79,13 +77,11 @@ class BattleOptimizer:
                     city_level=cl
                 )
                 
-                if not result.get("attacker_wins"):
-                    continue
+                if not result.get("attacker_wins"): continue
                     
                 raw_loss_pct = (result.get("attacker_killed", 0) / attacker_troops) * 100 if attacker_troops > 0 else 0
                 
-                if abs(raw_loss_pct - acceptable_loss_pct) > 3:
-                    continue
+                if abs(raw_loss_pct - acceptable_loss_pct) > 3: continue
 
                 salve = result.get("salvager_gold", 0)
                 diff_from_target = abs(salve - target_salve)
@@ -110,14 +106,33 @@ class BattleOptimizer:
                         "full_result": result
                     }
 
-        # Recommended simulation (+50% Guardian / +25% Salve) - unchanged from original
+        # === INTENDED RECOMMENDATION: Re-optimize with +50% Guardian / +25% Salvager (lower troops reward) ===
         if best_config:
             rec_guardian = manual_guardian + 50
             rec_salvager = manual_salvager + 25
             
-            rec_config = best_config.copy()
-            rec_config["guardian"] = round(rec_guardian, 1)
-            rec_config["salvager"] = round(rec_salvager, 1)
+            # Re-run the loss finder with boosted stats to get the lower troop stack
+            rec_dt = find_dt_for_loss(best_config["city_level"], acceptable_loss_pct, 
+                                      guardian=rec_guardian, salv=rec_salvager)
+            
+            rec_result = engine.simulate_battle(
+                at_troops=attacker_troops,
+                striker=attacker_striker,
+                dt_troops=rec_dt,
+                guardian=rec_guardian,
+                salv=rec_salvager,
+                city_level=best_config["city_level"]
+            )
+            
+            rec_config = {
+                "city_level": best_config["city_level"],
+                "defender_troops": round(rec_dt, 1),
+                "guardian": round(rec_guardian, 1),
+                "salvager": round(rec_salvager, 1),
+                "salvager_gold": round(rec_result.get("salvager_gold", 0), 1),
+                "full_result": rec_result
+            }
+            
             best_config["recommended"] = rec_config
             best_config["main_defender_troops"] = best_config["defender_troops"]
             best_config["pareto_top3"] = [best_config]
@@ -198,4 +213,4 @@ class BattleOptimizer:
             "total_dp": best_total_dp,
             "salvager_gold": round(salvager_gold, 1),
             "suicide_at_troops": round(suicide_at_troops, 1)
-                }
+        }
