@@ -10,7 +10,7 @@ profiles = ProfilesHandler()
 class CoreBattleEngine:
     def __init__(self):
         self.optimizer = BattleOptimizer()
-        self.battle_cache = {}  # Upgrade 3: simple cache
+        self.battle_cache = {}
 
     def get_profile_stats(self, profile_name: str, side: str = "defender"):
         if side == "defender":
@@ -71,6 +71,7 @@ class CoreBattleEngine:
         return {"total_cost": round(raw_total, 1), "cities": num, "start_level": start, "target_level": target}
 
     def drain_calc(self, args):
+        # Original pre-update logic restored exactly
         start_level = int(clean_input(args[0] if len(args) > 0 else 1, True))
         target_level = int(clean_input(args[1] if len(args) > 1 else start_level + 1, True))
         gold_stock = Cities.parse_gold_float(args[2] if len(args) > 2 else "0")
