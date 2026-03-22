@@ -9,11 +9,10 @@ print("🔄 Setting up persistent storage...")
 data_dir = "/data"
 os.makedirs(data_dir, exist_ok=True)
 
-# === ONLY extract the first time the folders don't exist yet ===
-key_folders = ["local", "cache"]
-folders_already_exist = all(os.path.exists(os.path.join(data_dir, f)) for f in key_folders)
+# Marker file to know if we've already migrated (more reliable than folder check)
+MIGRATION_MARKER = os.path.join(data_dir, ".bot_migrated")
 
-if not folders_already_exist:
+if not os.path.exists(MIGRATION_MARKER):
     print("📦 First-time migration: Extracting .tar.gz archives into Volume...")
     for filename in os.listdir("."):
         if filename.endswith(".tar.gz"):
@@ -21,11 +20,17 @@ if not folders_already_exist:
             with tarfile.open(filename, "r:gz") as tar:
                 tar.extractall(path=data_dir, filter="data")
             print(f"✅ Successfully extracted {filename}")
+    
+    # Create the marker so we skip next time
+    with open(MIGRATION_MARKER, "w") as f:
+        f.write("Migration completed successfully")
+    print("✅ First migration completed and marked!")
 else:
     print("✅ Data already exists in persistent volume. Skipping extraction.")
 
-# === ALWAYS create symlinks on every boot (required forever) ===
+# ALWAYS create symlinks on every boot (required forever)
 print("🔗 Creating symlinks to persistent storage...")
+key_folders = ["local", "cache"]
 for folder in key_folders:
     src = os.path.join(data_dir, folder)
     dst = f"./{folder}"
@@ -36,8 +41,8 @@ for folder in key_folders:
         try:
             os.symlink(src, dst, target_is_directory=True)
             print(f"✅ Symlink created for {folder}/")
-        except Exception as e:
-            print(f"Symlink for {folder} already good or skipped.")
+        except Exception:
+            print(f"✅ Symlink for {folder}/ already good or skipped.")
 
 print("✅ Persistent storage setup complete!")
 
