@@ -6,7 +6,7 @@ from dictionary import (
     format_val
 )
 
-BRIGHT_BLOOD_RED = 0xC8102E  # Unified color for all embeds
+BRIGHT_BLOOD_RED = 0xC8102E
 
 class UIHandler:
     @staticmethod
@@ -17,30 +17,24 @@ class UIHandler:
             description=f"Wall: {format_val(result.get('cw', 0))} | Troops & Guard: {format_val(result.get('dp', 0) - result.get('cw', 0))}",
             color=BRIGHT_BLOOD_RED
         )
-
         embed.add_field(name=f"{EMOJI_BATTLE} Battle Report", value=(
             f"{EMOJI_ATTACK} **{format_val(result.get('ap', 0))} AP** | {EMOJI_STRIKER} {result.get('striker', 0):.0f}%\n"
             f"{EMOJI_TROOPS} **{format_val(result.get('at_troops', 0))}** → **{format_val(result.get('at_troops', 0) - result.get('attacker_killed', 0))}** ☠️ **{format_val(result.get('attacker_killed', 0))}** (-{result.get('at_loss_pct', 0):.1f}%)\n"
             f"{EMOJI_FEARLESS} 90%: **{format_val(result.get('rev_a90', 0))}** | 75%: **{format_val(result.get('rev_a75', 0))}**\n"
             f"{EMOJI_SCAV} 162%: **{format_val(result.get('scav_162', 0))}** | 144%: **{format_val(result.get('scav_144', 0))}**\n\u200b"
         ), inline=False)
-
         embed.add_field(name=f"{EMOJI_DEFENSE} {format_val(result.get('dp', 0))} DP | {EMOJI_GUARDIAN} {result.get('guardian', 0):.0f}%", value=(
             f"{EMOJI_TROOPS} **{format_val(result.get('dt_troops', 0))}** → **{format_val(result.get('dt_troops', 0) - result.get('defender_killed', 0))}** ☠️ **{format_val(result.get('defender_killed', 0))}** (-{result.get('dt_loss_pct', 0):.1f}%)\n"
             f"{EMOJI_FEARLESS} 90%: **{format_val(result.get('rev_d90', 0))}** | 75%: **{format_val(result.get('rev_d75', 0))}**\n"
             f"{EMOJI_SALVE} {result.get('salv', 0):.0f}%: **{format_val(result.get('salvager_gold', 0))}**\n{DIVIDER}"
         ), inline=False)
-
         embed.add_field(name="Cost From Level | Cautious | Salve Profit", value=(
             f"Lvl {max(1, cl-5)} → **{format_val(result.get('cost_5', 0))}** | {EMOJI_CAUTIOUS} **{format_val(result.get('cautious_5', 0))}** | {EMOJI_SALVE}**{ '+' if result.get('salve_profit_5', 0) >= 0 else ''}{format_val(result.get('salve_profit_5', 0))}**\n"
             f"Lvl {max(1, cl-10)} → **{format_val(result.get('cost_10', 0))}** | {EMOJI_CAUTIOUS} **{format_val(result.get('cautious_10', 0))}** | {EMOJI_SALVE}**{ '+' if result.get('salve_profit_10', 0) >= 0 else ''}{format_val(result.get('salve_profit_10', 0))}**\n"
             f"Lvl {max(1, cl-15)} → **{format_val(result.get('cost_15', 0))}** | {EMOJI_CAUTIOUS} **{format_val(result.get('cautious_15', 0))}** | {EMOJI_SALVE}**{ '+' if result.get('salve_profit_15', 0) >= 0 else ''}{format_val(result.get('salve_profit_15', 0))}**\n"
             f"Lvl 1 → **{format_val(result.get('cost_full', 0))}** | {EMOJI_CAUTIOUS} **{format_val(result.get('cautious_full', 0))}** | {EMOJI_SALVE}**{ '+' if result.get('salve_profit_full', 0) >= 0 else ''}{format_val(result.get('salve_profit_full', 0))}**"
         ), inline=False)
-
-        troop_pct = result.get('defender_troop_pct', 0)
-        footer_text = f"Troops+Guard = {troop_pct:.1f}% of Total Defense"
-        embed.set_footer(text=footer_text)
+        embed.set_footer(text=f"Troops+Guard = {result.get('defender_troop_pct', 0):.1f}% of Total Defense")
         return embed
 
     @staticmethod
@@ -49,10 +43,8 @@ class UIHandler:
         embed = UIHandler.create_battle_embed(battle_data)
         embed.title = f"{EMOJI_CITY} City {battle_data.get('city_level', 1)} | Total Defense: {format_val(battle_data.get('dp', 0))}"
         embed.color = BRIGHT_BLOOD_RED
-        
         opt_dt = format_val(result.get('defender_troops', battle_data.get('dt_troops', 0)))
         embed.description = f"**Optimal Defender Troops:** {opt_dt}\n\n" + (embed.description or "")
-
         rec = result.get('recommended')
         if rec:
             saves = result.get('main_defender_troops', 0) - rec.get('defender_troops', 0)
@@ -63,9 +55,7 @@ class UIHandler:
                 f"Saves **\~{format_val(saves)}** troops per hit"
             )
             embed.add_field(name=f"{DIVIDER}\nRecommended for this City", value=recommended_text, inline=False)
-
-        current_footer = embed.footer.text or ""
-        embed.set_footer(text=f"{current_footer}\ncalc powered by MLE")
+        embed.set_footer(text=f"{embed.footer.text or ''}\ncalc powered by MLE")
         return embed
 
     @staticmethod
@@ -105,7 +95,6 @@ class UIHandler:
         )
         if result.get('salvager_gold', 0) > 0:
             value += f"\n{EMOJI_TROOPS} With a **{format_val(result.get('suicide_at_troops', 0))}** suicide, you'd earn {EMOJI_SALVE} **{format_val(result.get('salvager_gold', 0))}**"
-
         embed.add_field(name="Minimum city level to accept suicides on:", value=value, inline=False)
         embed.set_footer(text="sui powered by MLE")
         return embed
