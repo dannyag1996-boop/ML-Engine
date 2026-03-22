@@ -4,10 +4,11 @@ from ui_handler import UIHandler
 from cities import Cities
 from dictionary import clean_input, normalize_stat, format_val
 from troops_calc import TroopsCalc
+from xp_handler import XPHandler  # ← Added (fixes /farm /xp /cityxp)
 import discord
 from discord.ext import commands
 from discord import app_commands
-import asyncio   # ← For the fps.ms Cloudflare bypass
+import asyncio
 
 profiles = ProfilesHandler()
 engine = CoreBattleEngine()
@@ -57,6 +58,7 @@ class CommandHandler(commands.Cog):
                 result = engine.drain_calc(args)
                 embed = ui.create_drain_embed(result)
                 await ctx.send(embed=embed)
+            # Profile commands (skipped phase) - now have placeholders
             elif cmd == "setprofile":
                 await self._set_profile(ctx, args)
             elif cmd == "adjustother":
@@ -125,6 +127,22 @@ class CommandHandler(commands.Cog):
         target_pct = clean_input(args[4] if len(args) > 4 else 90, True)
         return [dt_troops, guardian, at_troops, salv, target_pct]
 
+    # === Placeholder methods for skipped profile phase ===
+    async def _set_profile(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _adjust_other(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _adjust_perm(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _profile2(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _use_profile(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _noprofile(self, ctx): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _clear(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _profile(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _permissions(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _allprofiles(self, ctx): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _attackers(self, ctx): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _builders(self, ctx): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _assign(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    # =======================================================
+
     async def show_help(self, ctx):
         embed = discord.Embed(title="All Commands", color=0x3498db)
         embed.add_field(name="Battle", value="$sim $ap $calc $farm $level $sui $xp $bulk $drain", inline=False)
@@ -162,11 +180,11 @@ class CommandHandler(commands.Cog):
         result = engine.optimize_calc(args)
         embed = ui.create_calc_embed(result)
         
-        await asyncio.sleep(0.8)  # Stronger delay for fps.ms Cloudflare
+        await asyncio.sleep(0.8)
         try:
             await interaction.followup.send(embed=embed)
         except discord.errors.HTTPException as e:
-            if "429" in str(e):  # Final fallback retry
+            if "429" in str(e):
                 await asyncio.sleep(1.5)
                 await interaction.followup.send(embed=embed)
             else:
@@ -214,30 +232,6 @@ class CommandHandler(commands.Cog):
         result = engine.drain_calc(args)
         embed = ui.create_drain_embed(result)
         await interaction.response.send_message(embed=embed)
-
-    def _parse_sim(self, args):
-        city_level = int(clean_input(args[0], True)) if len(args) > 0 else 115
-        at_troops = clean_input(args[1], False) if len(args) > 1 else 0.0
-        striker = clean_input(args[2], True) if len(args) > 2 else 0.0
-        scav = clean_input(args[3], True) if len(args) > 3 else 0.0
-        dt_troops = clean_input(args[4], False) if len(args) > 4 else 0.0
-        guardian = clean_input(args[5], True) if len(args) > 5 else 0.0
-        salv = clean_input(args[6], True) if len(args) > 6 else 0.0
-        fearless = clean_input(args[7], True) if len(args) > 7 else 75.0
-        result = engine.simulate_battle(at_troops=at_troops, striker=striker, scav=scav, fearless=fearless, dt_troops=dt_troops, guardian=guardian, salv=salv, brave=fearless, city_level=city_level)
-        return result
-
-    def _parse_ap(self, args):
-        troops = clean_input(args[0], False) if len(args) > 0 else 0.0
-        striker = clean_input(args[1], True) if len(args) > 1 else 0.0
-        ap = TroopsCalc.attacker_power(troops, striker)
-        max_city = 1
-        for lvl in range(1, 201):
-            if ap > Cities.get_cw_val(lvl):
-                max_city = lvl
-            else:
-                break
-        return {"ap": ap, "max_city": max_city, "formatted_ap": format_val(ap), "formatted_troops": format_val(troops), "striker": striker}
 
     @app_commands.command(name="level", description="Leveling Plan")
     @app_commands.describe(attacker_troops="Attacking troops", striker="Striker %", current_level="Current level")
