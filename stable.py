@@ -24,7 +24,7 @@ if not folders_already_exist:
 else:
     print("✅ Data already exists in persistent volume. Skipping extraction.")
 
-# === ALWAYS create symlinks on every boot (this part is required forever) ===
+# === ALWAYS create symlinks on every boot (required forever) ===
 print("🔗 Creating symlinks to persistent storage...")
 for folder in key_folders:
     src = os.path.join(data_dir, folder)
