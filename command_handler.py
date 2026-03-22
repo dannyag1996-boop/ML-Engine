@@ -38,7 +38,7 @@ class CommandHandler(commands.Cog):
                 result = engine.optimize_farm(args)
                 embed = ui.create_farm_embed(result)
                 await ctx.send(embed=embed)
-            elif cmd == "level":
+            elif cmd == "plan":  # ← was "level"
                 result = engine.optimize_leveling_plan(args)
                 embed = ui.create_level_embed(result)
                 await ctx.send(embed=embed)
@@ -50,7 +50,7 @@ class CommandHandler(commands.Cog):
                 result = engine.calculate_xp(args)
                 embed = ui.create_xp_embed(result)
                 await ctx.send(embed=embed)
-            elif cmd == "bulk":
+            elif cmd == "cost":  # ← was "bulk"
                 result = engine.bulk_cost_calc(args)
                 embed = ui.create_bulk_embed(result)
                 await ctx.send(embed=embed)
@@ -88,9 +88,9 @@ class CommandHandler(commands.Cog):
             elif cmd == "help" or cmd == "commands":
                 await self.show_help(ctx)
             else:
-                await ctx.send(f"❌ Unknown command `{cmd}`. Use `$help`.")
+                await ctx.send(f"Unknown command `{cmd}`. Use `$help`.")
         except Exception as e:
-            await ctx.send(f"❌ Error: {str(e)}")
+            await ctx.send(f"Error: {str(e)}")
 
     def _parse_calc(self, args):
         return args
@@ -128,117 +128,101 @@ class CommandHandler(commands.Cog):
         return [dt_troops, guardian, at_troops, salv, target_pct]
 
     # === Placeholder methods for skipped profile phase ===
-    async def _set_profile(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _adjust_other(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _adjust_perm(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _profile2(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _use_profile(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _noprofile(self, ctx): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _clear(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _profile(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _permissions(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _allprofiles(self, ctx): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _attackers(self, ctx): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _builders(self, ctx): await ctx.send("❌ Profiles phase skipped for now.")
-    async def _assign(self, ctx, args): await ctx.send("❌ Profiles phase skipped for now.")
+    async def _set_profile(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
+    async def _adjust_other(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
+    async def _adjust_perm(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
+    async def _profile2(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
+    async def _use_profile(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
+    async def _noprofile(self, ctx): await ctx.send("Profiles phase skipped for now.")
+    async def _clear(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
+    async def _profile(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
+    async def _permissions(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
+    async def _allprofiles(self, ctx): await ctx.send("Profiles phase skipped for now.")
+    async def _attackers(self, ctx): await ctx.send("Profiles phase skipped for now.")
+    async def _builders(self, ctx): await ctx.send("Profiles phase skipped for now.")
+    async def _assign(self, ctx, args): await ctx.send("Profiles phase skipped for now.")
     # =======================================================
 
     async def show_help(self, ctx):
         embed = discord.Embed(title="All Commands", color=0x3498db)
-        embed.add_field(name="Battle", value="$sim $ap $calc $farm $level $sui $xp $bulk $drain", inline=False)
+        embed.add_field(name="Battle", value="$sim $ap $calc $farm $plan $sui $xp $cost $drain", inline=False)  # ← updated
         embed.add_field(name="Profiles", value="$setprofile $adjustother $adjustperm $profile2 $useprofile $noprofile $clear $profile $permissions $allprofiles $attackers $builders $assign", inline=False)
         embed.add_field(name="Help", value="$help $commands", inline=False)
         await ctx.send(embed=embed)
 
     @app_commands.command(name="ap", description="Calculate Attack Power")
-    @app_commands.describe(troops="Troops (e.g. 456g)", striker="Striker %")
+    @app_commands.describe(troops="Troops (e.g. 456g)", striker="Striker bonus %")
     async def slash_ap(self, interaction: discord.Interaction, troops: str, striker: float = 0.0):
+        await interaction.response.defer()
+        await asyncio.sleep(0.5)
         result = self._parse_ap([troops, str(striker)])
         embed = ui.create_ap_embed(result)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="sim", description="Run battle simulation")
-    @app_commands.describe(city_level="City level", attacker_troops="Attacking troops", striker="Striker %", scavenger="Scavenger %", defender_troops="Defending troops", guardian="Guardian %", salvager="Salvager %", revival="Revival %")
-    async def slash_sim(self, interaction: discord.Interaction, city_level: int = 115, attacker_troops: str = "325g", striker: float = 550.0, scavenger: float = 162.0, defender_troops: str = "105g", guardian: float = 140.0, salvager: float = 321.0, revival: float = 75.0):
-        args = [str(city_level), attacker_troops, str(striker), str(scavenger), defender_troops, str(guardian), str(salvager), str(revival)]
-        result = self._parse_sim(args)
-        embed = ui.create_battle_embed(result)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="calc", description="Optimization - Max or Even mode")
-    @app_commands.describe(
-        attacker_troops="Attacking troops (e.g. 450g)",
-        striker="Striker %",
-        guardian="Guardian %",
-        salvager="Salvager %",
-        mode="Mode: max or even",
-        acceptable_loss="Acceptable attacker loss % before revive (default 25)"
-    )
-    async def slash_calc(self, interaction: discord.Interaction, attacker_troops: str, striker: float = 778.0, guardian: float = 140.0, salvager: float = 321.0, mode: str = "max", acceptable_loss: float = 25.0):
+    @app_commands.command(name="calc", description="Run full battle calc with optimizer")
+    @app_commands.describe(gold="Attacker gold (e.g. 450g)", troops="Attacker troops", city_level="Defender city level", defender_troops="Defender troops", mode="Mode (max/even)", cautious="Cautious %")
+    async def slash_calc(self, interaction: discord.Interaction, gold: str, troops: str, city_level: int, defender_troops: str, mode: str = "even", cautious: float = 90.0):
         await interaction.response.defer()
-        args = [attacker_troops, str(striker), str(guardian), str(salvager), mode, str(acceptable_loss)]
-        result = engine.optimize_calc(args)
-        embed = ui.create_calc_embed(result)
-        
         await asyncio.sleep(0.8)
         try:
+            result = engine.optimize_calc(gold, troops, city_level, defender_troops, mode, cautious)
+            embed = ui.create_calc_embed(result)
             await interaction.followup.send(embed=embed)
-        except discord.errors.HTTPException as e:
-            if "429" in str(e):
-                await asyncio.sleep(1.5)
-                await interaction.followup.send(embed=embed)
-            else:
-                raise
+        except Exception as e:
+            await interaction.followup.send(f"Error: {str(e)}")
 
     @app_commands.command(name="farm", description="Cities needed to level up")
-    @app_commands.describe(current_level="Current character level", city_level="City level to hit", modifier="XP modifier %")
-    async def slash_farm(self, interaction: discord.Interaction, current_level: int = 1, city_level: int = 115, modifier: float = 100.0):
-        result = XPHandler.calculate_cities_needed_to_level_up(current_level, city_level, modifier)
+    @app_commands.describe(current_level="Current player level", city_level="City level to farm", modifier="Modifier % (50/100/150/200)")
+    async def slash_farm(self, interaction: discord.Interaction, current_level: int, city_level: int, modifier: float = 100.0):
+        await interaction.response.defer()
+        await asyncio.sleep(0.5)
+        result = engine.optimize_farm([str(current_level), str(city_level), str(modifier)])
         embed = ui.create_farm_embed(result)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="sui", description="Suicide Optimization")
-    @app_commands.describe(defender_troops="Defender troops (required)", guardian="Guardian % (required)", attacker_troops="Attacker troops for suicide calc (optional)", salvager="Salvager % (optional)", target_pct="Target defense % (default 90)")
-    async def slash_sui(self, interaction: discord.Interaction, defender_troops: str, guardian: float, attacker_troops: str = "0", salvager: float = 0.0, target_pct: float = 90.0):
-        result = engine.sui_calc([defender_troops, str(guardian), attacker_troops, str(salvager), str(target_pct)])
-        embed = ui.create_sui_embed(result)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="xp", description="Cumulative XP for X cities")
-    @app_commands.describe(cities="Number of cities", city_level="City level", modifier="XP modifier %")
-    async def slash_xp(self, interaction: discord.Interaction, cities: int = 5, city_level: int = 115, modifier: float = 100.0):
-        result = XPHandler.calculate_cumulative_xp(cities, city_level, modifier)
-        embed = ui.create_xp_embed(result)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="cityxp", description="Single city XP")
-    @app_commands.describe(city_level="City level", modifier="XP modifier %")
-    async def slash_cityxp(self, interaction: discord.Interaction, city_level: int = 115, modifier: float = 100.0):
-        result = XPHandler.calculate_single_city_xp(city_level, modifier)
-        embed = ui.create_xp_embed(result)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="bulk", description="Bulk Upgrade Report")
-    @app_commands.describe(quantity="Quantity", from_level="From level", to_level="To level")
-    async def slash_bulk(self, interaction: discord.Interaction, quantity: int = 1, from_level: int = 1, to_level: int = 10):
-        result = engine.bulk_cost_calc([str(from_level), str(to_level), str(quantity)])
-        embed = ui.create_bulk_embed(result)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="drain", description="Drain cycle simulation")
-    @app_commands.describe(start_level="Starting city level", target_level="Target city level", gold_stock="Gold stock (e.g. 500g)", cautious_pct="Cautious %")
-    async def slash_drain(self, interaction: discord.Interaction, start_level: int = 1, target_level: int = 10, gold_stock: str = "100g", cautious_pct: float = 50.0):
-        args = [str(start_level), str(target_level), gold_stock, str(cautious_pct)]
-        result = engine.drain_calc(args)
-        embed = ui.create_drain_embed(result)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="level", description="Leveling Plan")
-    @app_commands.describe(attacker_troops="Attacking troops", striker="Striker %", current_level="Current level")
-    async def slash_level(self, interaction: discord.Interaction, attacker_troops: str, striker: float = 550.0, current_level: int = 1):
-        result = engine.optimize_leveling_plan([attacker_troops, str(striker), str(current_level)])
+    @app_commands.command(name="plan", description="Leveling plan (was /level)")  # ← renamed
+    @app_commands.describe(current_level="Current player level", target_level="Target level")
+    async def slash_level(self, interaction: discord.Interaction, current_level: int, target_level: int):
+        await interaction.response.defer()
+        await asyncio.sleep(0.5)
+        result = engine.optimize_leveling_plan([str(current_level), str(target_level)])
         embed = ui.create_level_embed(result)
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
-async def setup(bot):
-    await bot.add_cog(CommandHandler(bot))
+    @app_commands.command(name="sui", description="SUI calculator")
+    @app_commands.describe(defender_troops="Defender troops", guardian="Guardian %", attacker_troops="Attacker troops", salvager="Salvager %", target_loss="Target loss %")
+    async def slash_sui(self, interaction: discord.Interaction, defender_troops: str, guardian: float = 0.0, attacker_troops: str, salvager: float = 0.0, target_loss: float = 90.0):
+        await interaction.response.defer()
+        await asyncio.sleep(0.5)
+        result = engine.sui_calc(self._parse_sui([defender_troops, str(guardian), attacker_troops, str(salvager), str(target_loss)]))
+        embed = ui.create_sui_embed(result)
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="xp", description="XP calculator")
+    @app_commands.describe(cities_hit="Cities hit", city_level="City level", modifier="Modifier %")
+    async def slash_xp(self, interaction: discord.Interaction, cities_hit: int, city_level: int, modifier: float = 100.0):
+        await interaction.response.defer()
+        await asyncio.sleep(0.5)
+        result = engine.calculate_xp([str(cities_hit), str(city_level), str(modifier)])
+        embed = ui.create_xp_embed(result)
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="cost", description="Bulk upgrade cost (was /bulk)")  # ← renamed
+    @app_commands.describe(amount="Amount of cities", start_level="Starting city level", target_level="Target city level")
+    async def slash_bulk(self, interaction: discord.Interaction, amount: int, start_level: int, target_level: int):
+        await interaction.response.defer()
+        await asyncio.sleep(0.5)
+        result = engine.bulk_cost_calc([str(amount), str(start_level), str(target_level)])
+        embed = ui.create_bulk_embed(result)
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="drain", description="Cautious-only drain simulation")
+    @app_commands.describe(start_level="Starting city level", target_level="Target city level", gold_stock="Defender gold stock", cautious="Cautious %")
+    async def slash_drain(self, interaction: discord.Interaction, start_level: int, target_level: int, gold_stock: str, cautious: float = 50.0):
+        await interaction.response.defer()
+        await asyncio.sleep(0.5)
+        result = engine.drain_calc([str(start_level), str(target_level), gold_stock, str(cautious)])
+        embed = ui.create_drain_embed(result)
+        await interaction.followup.send(embed=embed)
+
+# End of file
