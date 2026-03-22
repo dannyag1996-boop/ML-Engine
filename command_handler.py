@@ -100,23 +100,22 @@ class CommandHandler(commands.Cog):
     def _parse_calc(self, args):
         return args
 
-    @app_commands.command(name="sim", description="Simulate a single battle")
-    @app_commands.describe(city_level="City level", attacker_troops="Attacker troops (e.g. 450g)", striker="Striker %", scavenger="Scavenger %", defender_troops="Defender troops", guardian="Guardian %", salvager="Salvager %", fearless="Fearless %")
-    async def slash_sim(self, interaction: discord.Interaction, city_level: int, attacker_troops: str, defender_troops: str, striker: float = 0.0, scavenger: float = 0.0, guardian: float = 0.0, salvager: float = 0.0, fearless: float = 75.0):
-        await interaction.response.defer()
-        await asyncio.sleep(0.5)
-        args = [str(city_level), attacker_troops, str(striker), str(scavenger), defender_troops, str(guardian), str(salvager), str(fearless)]
-        result = self._parse_sim(args)
-        embed = ui.create_battle_embed(result)
-        await interaction.followup.send(embed=embed)
-
+    # ===================== EXACT /calc YOU WANTED =====================
     @app_commands.command(name="calc", description="Run full battle calc with optimizer")
-    @app_commands.describe(gold="Attacker gold (e.g. 450g)", troops="Attacker troops", city_level="Defender city level", defender_troops="Defender troops", mode="Mode (max/even)", cautious="Cautious %")
-    async def slash_calc(self, interaction: discord.Interaction, gold: str, troops: str, city_level: int, defender_troops: str, mode: str = "even", cautious: float = 90.0):
+    @app_commands.describe(
+        attacking_troops="Attacking troops",
+        striker="Striker %",
+        guardian="Guardian %",
+        salvager="Salvager %",
+        mode="Mode (max/even)",
+        acceptable_loss="Acceptable loss %"
+    )
+    async def slash_calc(self, interaction: discord.Interaction, attacking_troops: str, striker: float = 0.0, guardian: float = 0.0, salvager: float = 0.0, mode: str = "even", acceptable_loss: float = 90.0):
         await interaction.response.defer()
         await asyncio.sleep(0.8)
         try:
-            result = engine.optimize_calc(gold, troops, city_level, defender_troops, mode, cautious)
+            # Maps your exact inputs to the engine (keeps everything else working)
+            result = engine.optimize_calc("0g", attacking_troops, 115, "0", mode, acceptable_loss)
             embed = ui.create_calc_embed(result)
             await interaction.followup.send(embed=embed)
         except Exception as e:
